@@ -52,6 +52,7 @@ bool firstMouse = true;
 
 bool keys[1024];
 GLfloat lastFrame = 0.0f;
+bool camLeft,camRight,camUp,camDown;
 
 // ------ Tile --------------
 
@@ -341,46 +342,66 @@ void keyboardUp ( unsigned char key, int x, int y ){
 
 void specialKey ( int key, int x, int y){
     //cout << "specialKey" << endl;
-    if(! hasTile) return;
 
-    if(key == GLUT_KEY_LEFT){
-        myTile.Left();
-        if(! myWindow.CheckTile(myTile)) myTile.Right();
-    }
-    if(key == GLUT_KEY_RIGHT){
-        myTile.Right();
-        if(! myWindow.CheckTile(myTile)) myTile.Left();
-    }
-    if(key == GLUT_KEY_DOWN){
-        myTile.Down();
-        if(! myWindow.CheckTile(myTile)) myTile.Up();
-    }
-    if(key == GLUT_KEY_UP){
-        int totTrans = transNum[myTile.form];
-        if(totTrans == 4){ 
-            myTile.RotateRight(totTrans);
-            if(! myWindow.CheckTile(myTile)) myTile.RotateLeft(totTrans);
-        }
-        else{
-            if(myTile.trans == totTrans-1){
-                myTile.RotateLeft(totTrans);
-                if(! myWindow.CheckTile(myTile)) myTile.RotateRight(totTrans);
-            }
-            else{
-                myTile.RotateRight(totTrans);
-                if(! myWindow.CheckTile(myTile)) myTile.RotateLeft(totTrans);
-            }
-        }
-    }
+	int controlKey = glutGetModifiers();
+
+	if( controlKey & GLUT_ACTIVE_CTRL){
+		if(key == GLUT_KEY_UP) camUp = true;
+		if(key == GLUT_KEY_DOWN) camDown = true;
+		if(key == GLUT_KEY_LEFT) camLeft = true;
+		if(key == GLUT_KEY_RIGHT) camRight = true;
+	}
+	else{
+		camUp = camDown = camLeft = camRight = false;
+
+	    if(! hasTile) return;
+
+	    if(key == GLUT_KEY_LEFT){
+	        myTile.Left();
+	        if(! myWindow.CheckTile(myTile)) myTile.Right();
+	    }
+	    if(key == GLUT_KEY_RIGHT){
+	        myTile.Right();
+	        if(! myWindow.CheckTile(myTile)) myTile.Left();
+	    }
+	    if(key == GLUT_KEY_DOWN){
+	        myTile.Down();
+	        if(! myWindow.CheckTile(myTile)) myTile.Up();
+	    }
+	    if(key == GLUT_KEY_UP){
+	        int totTrans = transNum[myTile.form];
+	        if(totTrans == 4){ 
+	            myTile.RotateRight(totTrans);
+	            if(! myWindow.CheckTile(myTile)) myTile.RotateLeft(totTrans);
+	        }
+	        else{
+	            if(myTile.trans == totTrans-1){
+	                myTile.RotateLeft(totTrans);
+	                if(! myWindow.CheckTile(myTile)) myTile.RotateRight(totTrans);
+	            }
+	            else{
+	                myTile.RotateRight(totTrans);
+	                if(! myWindow.CheckTile(myTile)) myTile.RotateLeft(totTrans);
+	            }
+	        }
+	    }
+	}
+}
+
+void specialKeyUp (int key, int x,int y){
+	if(key == GLUT_KEY_UP) camUp = false;
+	if(key == GLUT_KEY_DOWN) camDown = false;
+	if(key == GLUT_KEY_LEFT) camLeft = false;
+	if(key == GLUT_KEY_RIGHT) camRight = false;
 }
 
 void Do_Movement(GLfloat deltaTime){ // Update camera position
     //if(keys['w']) myCamera.Move(FORWARD,deltaTime,1); // Move on the Ground
-    if(keys['w']) myCamera.Move(UP,deltaTime);
+    if(camUp) myCamera.Move(UP,deltaTime);
     //if(keys['s']) myCamera.Move(BACKWARD,deltaTime,1);    // Move on the Ground
-    if(keys['s']) myCamera.Move(DOWN,deltaTime);
-    if(keys['a']) myCamera.Move(LEFT,deltaTime);
-    if(keys['d']) myCamera.Move(RIGHT,deltaTime);
+    if(camDown) myCamera.Move(DOWN,deltaTime);
+    if(camLeft) myCamera.Move(LEFT,deltaTime);
+    if(camRight) myCamera.Move(RIGHT,deltaTime);
 }
 
 void mouse(int button,int state,int x,int y){   // Update camera aspect
@@ -705,6 +726,7 @@ int main(int argc, char **argv ){
     glutKeyboardFunc( keyboard );
     glutKeyboardUpFunc( keyboardUp);
     glutSpecialFunc( specialKey );
+    glutSpecialUpFunc( specialKeyUp);
     glutMouseFunc( mouse );
     glutReshapeFunc( reshape );
 
