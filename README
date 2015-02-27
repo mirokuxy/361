@@ -1,0 +1,115 @@
+// This is a readme file for FruitTetris game for assignment 1 of CMTP361 at SFU
+// Author: Yu Xiao 
+// Student ID: 301267080
+
+
+----- Make command -----
+	make
+------------------------
+
+
+-- Execution command ---
+	./FruitTetris
+------------------------
+
+
+------------- Game Instruction -------------
+
+1) to manipulate camera
+
+'w' : move up
+'s' : move down
+'a' : move left
+'d' : move right
+mouse roll forward : magnify objects / decrease FOV
+mouse roll backward : minify objects / increase FOV
+
+PS : The camera always looks at the center of the game window
+
+2) to manipulate tiles
+
+'up' (direction key) : rotate the tile
+'left' (direction key) : move left
+'right' (direction key) : move right
+'down' (direction key) : accelerate falling
+'space' : shuffle the fruits within the tile
+
+3) general game control
+
+'z' : suspend game / continue game
+'r' : restart game
+'q' : quit game 
+
+---------------------------------------------
+
+
+----------- Game Logic Explanation ----------
+
+1) Any full row will be removed
+
+2) Any consecutive 3 fruits of the same the kind will be removed
+
+3) Remove happens after tiles lands
+
+4) 1) & 2) can happen at the same time
+
+5) After remove happens, fruits that are then not connected to the ground (directly or indirectly) will begin to fall
+
+6) Falling fruits that are connected to each other will fall as a whole
+
+7) Falling ends only when the connected fruits as a whole lands on some ground
+
+8) When any of these new falling fruits is still falling, no user-controlled tile will generate, nor can user control these free falling fruits
+
+9) After all the free falling fruits lands, a user-controlled tile will be generated immediately
+
+---------------------------------------------
+
+
+--- File Directory Explanation ---
+
+include/ :
+	GLM lib headers ( for mathmatical calculation )
+	SOIL lib headers ( for loading textures )
+	My own headers ( shader class; camera class; cube class; tile class; window class)
+
+shader/ :
+	vertex shaders
+	fragment shaders
+
+texture/ :
+	texture files
+
+Tetris.cpp : 
+	Main program
+
+Makefile :
+	makefile file
+
+----------------------------------
+
+
+--- Steps not completed ---
+	NONE
+---------------------------
+
+
+------------- Additional Features -------------
+
+1) 3D Graphics :
+	The FruitTetris in a 3D world.
+	Provide with a camera which can rotate around the game window, observe the tetris from different perspectives.
+
+2) Texture :
+	Each kind of fruit is represented by a corresponding picture with corresponding color.
+
+3) Game Info and Control :
+	'z' to suspend and continue game;
+	prompt in terminal window when game ends;
+
+4) Multiple Shaders :
+	vshader.glsl , fshader.glsl : to draw tiles
+	vshaderGrid.glsl , fshaderGrid.glsl : to draw backgournd
+
+-----------------------------------------------
+
