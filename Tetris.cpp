@@ -29,6 +29,7 @@ using namespace std;
 #include <cube.h>   // My Cube class
 #include <tile.h>   // My Tetris Tile class
 #include <window.h> // My game Window class
+#include <robot.h>  // My Robot Arm class
 
 // ---------- Define global variables ------------
 // -----------------------------------------------
@@ -104,6 +105,8 @@ bool gameSuspend = false;
 bool gameEnd = false;
 bool gameRestart = false;
 
+// ---------Robot Arm-----------
+Robot robot;
 
 //------------------------------------------------------
 
@@ -298,6 +301,8 @@ void gameInit(){
 
     myTile = newTile(2,myWindow.width - 1 - 2);
     hasTile = true;
+
+    robot = Robot(-5,12,12);
 }
 
 void restartGame(){
@@ -402,6 +407,13 @@ void Do_Movement(GLfloat deltaTime){ // Update camera position
     if(camDown) myCamera.Move(DOWN,deltaTime);
     if(camLeft) myCamera.Move(LEFT,deltaTime);
     if(camRight) myCamera.Move(RIGHT,deltaTime);
+
+    // Move Robot Arm
+    if(keys['a']) robot.Left(deltaTime);
+    if(keys['d']) robot.Right(deltaTime);
+    if(keys['w']) robot.Up(deltaTime);
+    if(keys['s']) robot.Down(deltaTime);
+
 }
 
 void mouse(int button,int state,int x,int y){   // Update camera aspect
@@ -642,7 +654,7 @@ void display(void){ // Render
 
     //if(!inWindow) hasTile = 0;
 
-    // Draw the game window with the same shader program and VAO
+    // Draw the game window tiles with the same shader program and VAO
     for(int i=0;i<myWindow.width;i++)
         for(int j=0;j<myWindow.height;j++) if(myWindow.bitmap[i][j]){
             
@@ -661,8 +673,49 @@ void display(void){ // Render
             //glDrawElements(GL_LINES,24, GL_UNSIGNED_INT, 0);
         }
 
-    glBindVertexArray(0);
+    // Draw the Robot Arm with the same shader program and VAO
 
+    // Overall configure
+    type = 5;
+    glUniform1i(typeLoc,type);
+    
+    // Draw the base
+    color = glm::vec3(0.0f,1.0f,1.0f);
+    glUniform3fv(colorLoc,1,glm::value_ptr(color));
+
+    model = glm::mat4();
+    model = glm::translate(model,robot.basePos);
+    model = glm::scale(model,robot.baseScale);
+    glUniformMatrix4fv(modelLoc,1,GL_FALSE,glm::value_ptr(model));
+    glDrawArrays(GL_TRIANGLES,0,36);
+
+    // Draw the low arm
+	color = glm::vec3(1.0f,0.0f,1.0f);
+    glUniform3fv(colorLoc,1,glm::value_ptr(color));
+
+
+    model = glm::mat4();
+    //glm::vec3 lowArmTrans = robot.lowArmPos + glm::vec3(0,robot.lowArmScale.y /2 ,0);
+    model = glm::translate(model,robot.lowArmMid);
+    model = glm::rotate(model,glm::radians(-robot.lowArmAngle),glm::vec3(0,0,1));
+    model = glm::scale(model,robot.lowArmScale);
+    glUniformMatrix4fv(modelLoc,1,GL_FALSE,glm::value_ptr(model));
+    glDrawArrays(GL_TRIANGLES,0,36);
+
+    // Draw the high arm
+    color = glm::vec3(1.0f,1.0f,0.0f);
+    glUniform3fv(colorLoc,1,glm::value_ptr(color));
+
+    model = glm::mat4();
+    //glm::vec3 highArmTans = robot.highArmPos + glm::vec3(0,robot.highArmScale.y /2, 0);
+    model = glm::translate(model,robot.highArmMid);
+    model = glm::rotate(model,glm::radians(-robot.highArmAngle),glm::vec3(0,0,1));
+    model = glm::scale(model,robot.highArmScale);
+    glUniformMatrix4fv(modelLoc,1,GL_FALSE,glm::value_ptr(model));
+    glDrawArrays(GL_TRIANGLES,0,36);
+
+
+    glBindVertexArray(0);
 
     // ---------------------------------------------------------------
 
