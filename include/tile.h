@@ -109,6 +109,10 @@ public:
 			cubes[i].type = cubes[i-1].type;
 		cubes[0].type = tmp;
 	}
+
+	void SetPos(glm::ivec3 pos){
+		this->pos = pos;
+	}
 };
 
 struct TileLink{

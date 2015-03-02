@@ -1,4 +1,4 @@
-// This is a readme file for FruitTetris game for assignment 1 of CMTP361 at SFU
+// This is a readme file for FruitTetris3D game for assignment 2 of CMTP361 at SFU
 // Author: Yu Xiao 
 // Student ID: 301267080
 
@@ -9,7 +9,7 @@
 
 
 -- Execution command ---
-	./FruitTetris
+	./FruitTetris3D
 ------------------------
 
 
@@ -17,24 +17,30 @@
 
 1) to manipulate camera
 
-'w' : move up
-'s' : move down
-'a' : move left
-'d' : move right
+ctrl + 'up' : move up
+ctrl + 'down' : move down
+ctrl + 'left' : move left
+ctrl + 'right' : move right
 mouse roll forward : magnify objects / decrease FOV
 mouse roll backward : minify objects / increase FOV
 
 PS : The camera always looks at the center of the game window
 
-2) to manipulate tiles
+2) to manipulate the robot arm
+
+'w' : move up
+'s' : move down
+'a' : move left
+'d' : move right
+'space' : drop fruit
+
+3) to manipulate tiles
 
 'up' (direction key) : rotate the tile
-'left' (direction key) : move left
-'right' (direction key) : move right
 'down' (direction key) : accelerate falling
 'space' : shuffle the fruits within the tile
 
-3) general game control
+4) general game control
 
 'z' : suspend game / continue game
 'r' : restart game
@@ -63,6 +69,16 @@ PS : The camera always looks at the center of the game window
 
 9) After all the free falling fruits lands, a user-controlled tile will be generated immediately
 
+new about robot arm:
+
+10) tile cannot be shuffled or rotated when on a robot arm
+
+11) tile cannot no longer be moved left or right after leaving the robot arm
+
+12) tile cannot be dropped from robot arm when it's out side of the game window or colliding with other tiles
+
+
+
 ---------------------------------------------
 
 
@@ -71,7 +87,7 @@ PS : The camera always looks at the center of the game window
 include/ :
 	GLM lib headers ( for mathmatical calculation )
 	SOIL lib headers ( for loading textures )
-	My own headers ( shader class; camera class; cube class; tile class; window class)
+	My own headers ( shader class; camera class; cube class; tile class; window class; robot class)
 
 shader/ :
 	vertex shaders
@@ -96,9 +112,8 @@ Makefile :
 
 ------------- Additional Features -------------
 
-1) 3D Graphics :
-	The FruitTetris in a 3D world.
-	Provide with a camera which can rotate around the game window, observe the tetris from different perspectives.
+1) camera control :
+	camera can move up and down
 
 2) Texture :
 	Each kind of fruit is represented by a corresponding picture with corresponding color.
@@ -108,7 +123,7 @@ Makefile :
 	prompt in terminal window when game ends;
 
 4) Multiple Shaders :
-	vshader.glsl , fshader.glsl : to draw tiles
+	vshader.glsl , fshader.glsl : to draw tiles and robot arm
 	vshaderGrid.glsl , fshaderGrid.glsl : to draw backgournd
 
 -----------------------------------------------

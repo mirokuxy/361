@@ -107,6 +107,7 @@ bool gameRestart = false;
 
 // ---------Robot Arm-----------
 Robot robot;
+bool tileOnTip;
 
 //------------------------------------------------------
 
@@ -299,10 +300,11 @@ void gameInit(){
     freeTiles = NULL;
     hasFreeTile = false;
 
-    myTile = newTile(2,myWindow.width - 1 - 2);
-    hasTile = true;
-
     robot = Robot(-5,12,12);
+    myTile = newTile(2,myWindow.width - 1 - 2);
+    myTile.SetPos(robot.tipPosDiscrete);
+    tileOnTip = true;
+    hasTile = false;
 }
 
 void restartGame(){
@@ -334,8 +336,23 @@ void keyboard( unsigned char key, int x, int y ){
         case 'r': case 'R':
             gameRestart = true;
         case ' ':
-            if(hasTile) myTile.Shuffle();
-            break;
+            //if(hasTile) myTile.Shuffle();
+        	if(tileOnTip && myWindow.CheckTile(myTile)){
+        		tileOnTip = false;
+        		hasTile = true;
+        	}
+        	else if(hasTile){
+        		//printf("Space detected\n");
+        		myTile.Shuffle();
+        		/*
+        		int controlKey = glutGetModifiers();
+        		if( controlKey & GLUT_ACTIVE_CTRL){
+        			myTile.Shuffle();
+        			printf("CTRL detected\n");
+        		}
+        		*/
+        	}
+        	break;
         default: keys[key] = true;
     }
 }
@@ -361,14 +378,18 @@ void specialKey ( int key, int x, int y){
 
 	    if(! hasTile) return;
 
+	    /*
 	    if(key == GLUT_KEY_LEFT){
 	        myTile.Left();
 	        if(! myWindow.CheckTile(myTile)) myTile.Right();
 	    }
+	    */
+	    /*
 	    if(key == GLUT_KEY_RIGHT){
 	        myTile.Right();
 	        if(! myWindow.CheckTile(myTile)) myTile.Left();
 	    }
+	    */
 	    if(key == GLUT_KEY_DOWN){
 	        myTile.Down();
 	        if(! myWindow.CheckTile(myTile)) myTile.Up();
@@ -409,11 +430,13 @@ void Do_Movement(GLfloat deltaTime){ // Update camera position
     if(camRight) myCamera.Move(RIGHT,deltaTime);
 
     // Move Robot Arm
-    if(keys['a']) robot.Left(deltaTime);
-    if(keys['d']) robot.Right(deltaTime);
-    if(keys['w']) robot.Up(deltaTime);
-    if(keys['s']) robot.Down(deltaTime);
+    bool changePos=false;
+    if(keys['a']) changePos = robot.Left(deltaTime);
+    if(keys['d']) changePos = robot.Right(deltaTime);
+    if(keys['w']) changePos = robot.Up(deltaTime);
+    if(keys['s']) changePos = robot.Down(deltaTime);
 
+    if(tileOnTip && changePos) myTile.SetPos(robot.tipPosDiscrete);
 }
 
 void mouse(int button,int state,int x,int y){   // Update camera aspect
@@ -450,9 +473,12 @@ void display(void){ // Render
     if(gameRestart) restartGame();
 
     // Update tile position
+    // --------------------
+
     if(! gameSuspend && ! gameEnd) interval += deltaTime;
-    if(interval >= 0.6) { 
-        if(hasTile){
+    // every interval update tile state
+    if(interval >= 0.6 && ! tileOnTip) {
+        if(hasTile){ // tile exists, so try to drop down 1 slot, and detect if collides
             myTile.Down();
             if(! myWindow.CheckTile(myTile)){
                 myTile.Up();
@@ -486,8 +512,10 @@ void display(void){ // Render
                 #endif
             }
         }
-        else if(! hasFreeTile){
+        else if(! hasFreeTile){	// no tile, and no free tile, then bear a new player tile
             myTile = newTile(2,myWindow.width -1 - 2);
+            myTile.SetPos(robot.tipPosDiscrete);
+            tileOnTip = true;
 
             #ifdef DEBUG
             printf("New Tile : ");
@@ -498,14 +526,16 @@ void display(void){ // Render
             printf("\n");   
             #endif
 
+            /*
             hasTile = true;
             if(! myWindow.CheckTile(myTile)){
                 myTile.Up();
                 gameEnd = true;
                 printf("Game Ends: No place to generate new tile!\n");
             }
+            */
         }
-        else{
+        else{	// has free tiles, then drop free tiles and detect collides
             // Try to move all free tiles down 1 position
             // and remove tile no longer free
             TileLink* pre = NULL;
@@ -555,6 +585,8 @@ void display(void){ // Render
             else printf(":: No free tiles\n");
             #endif
         }
+
+        // renew interval
         interval = 0.0f;
     }
 
@@ -611,7 +643,68 @@ void display(void){ // Render
     //bool inWindow = 0;
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    if(hasTile){
+    // Draw the Robot Arm with the same shader program and VAO
+    // -----------------------------------------------------
+
+    // Overall configure
+    type = 5;
+    glUniform1i(typeLoc,type);
+    
+    // Draw the base
+    color = glm::vec3(0.0f,1.0f,1.0f);
+    glUniform3fv(colorLoc,1,glm::value_ptr(color));
+
+    model = glm::mat4();
+    model = glm::translate(model,robot.basePos);
+    model = glm::scale(model,robot.baseScale);
+    glUniformMatrix4fv(modelLoc,1,GL_FALSE,glm::value_ptr(model));
+    glDrawArrays(GL_TRIANGLES,0,36);
+
+    // Draw the low arm
+	color = glm::vec3(1.0f,0.0f,1.0f);
+    glUniform3fv(colorLoc,1,glm::value_ptr(color));
+
+    model = glm::mat4();
+    model = glm::translate(model,robot.lowArmMid);
+    model = glm::rotate(model,glm::radians(-robot.lowArmAngle),glm::vec3(0,0,1));
+    model = glm::scale(model,robot.lowArmScale);
+    glUniformMatrix4fv(modelLoc,1,GL_FALSE,glm::value_ptr(model));
+    glDrawArrays(GL_TRIANGLES,0,36);
+
+    // Draw the high arm
+    color = glm::vec3(1.0f,1.0f,0.0f);
+    glUniform3fv(colorLoc,1,glm::value_ptr(color));
+
+    model = glm::mat4();
+    model = glm::translate(model,robot.highArmMid);
+    model = glm::rotate(model,glm::radians(-robot.highArmAngle),glm::vec3(0,0,1));
+    model = glm::scale(model,robot.highArmScale);
+    glUniformMatrix4fv(modelLoc,1,GL_FALSE,glm::value_ptr(model));
+    glDrawArrays(GL_TRIANGLES,0,36);
+
+    // -----------------------------------------------------
+
+    // Draw the game window tiles with the same shader program and VAO
+    for(int i=0;i<myWindow.width;i++)
+        for(int j=0;j<myWindow.height;j++) if(myWindow.bitmap[i][j]){
+            
+            type = myWindow.type[i][j];
+            glUniform1i(typeLoc,type);
+
+            color = colors[myWindow.type[i][j]];
+            glUniform3fv(colorLoc,1,glm::value_ptr(color));
+
+            model = glm::mat4();
+            model = glm::translate(model,glm::vec3(i,j,0));
+            model = glm::scale(model,glm::vec3(0.95f,0.95f,0.95f));
+
+            glUniformMatrix4fv(modelLoc,1,GL_FALSE,glm::value_ptr(model));
+            glDrawArrays(GL_TRIANGLES,0,36);
+            //glDrawElements(GL_LINES,24, GL_UNSIGNED_INT, 0);
+        }
+
+    // Draw the tile
+    if(hasTile || tileOnTip){
         for(int i=0;i<myTile.num; i++){
             glm::vec3 pos = myTile.GetPos(i);
             if(pos.x < 0 || pos.x >= myWindow.width || pos.y < 0 || pos.y >= myWindow.height)
@@ -621,11 +714,15 @@ void display(void){ // Render
             glUniform1i(typeLoc,type);
 
             color = colors[myTile[i].type];
+            if(myWindow.bitmap[int(pos.x)][int(pos.y)]) {
+            	color = glm::vec3(0.75f,0.75f,0.75f);
+            	//printf("collision detected\n");
+            }
             glUniform3fv(colorLoc,1,glm::value_ptr(color));
 
             model = glm::mat4();
             model = glm::translate(model,pos);
-            model = glm::scale(model,glm::vec3(0.95f,0.95f,0.95f));
+            model = glm::scale(model,glm::vec3(0.96f,0.96f,0.96f));
             glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
             glDrawArrays(GL_TRIANGLES, 0, 36);   
         }
@@ -651,69 +748,6 @@ void display(void){ // Render
             glDrawArrays(GL_TRIANGLES, 0, 36);  
         }
     }
-
-    //if(!inWindow) hasTile = 0;
-
-    // Draw the game window tiles with the same shader program and VAO
-    for(int i=0;i<myWindow.width;i++)
-        for(int j=0;j<myWindow.height;j++) if(myWindow.bitmap[i][j]){
-            
-            type = myWindow.type[i][j];
-            glUniform1i(typeLoc,type);
-
-            color = colors[myWindow.type[i][j]];
-            glUniform3fv(colorLoc,1,glm::value_ptr(color));
-
-            model = glm::mat4();
-            model = glm::translate(model,glm::vec3(i,j,0));
-            model = glm::scale(model,glm::vec3(0.95f,0.95f,0.95f));
-
-            glUniformMatrix4fv(modelLoc,1,GL_FALSE,glm::value_ptr(model));
-            glDrawArrays(GL_TRIANGLES,0,36);
-            //glDrawElements(GL_LINES,24, GL_UNSIGNED_INT, 0);
-        }
-
-    // Draw the Robot Arm with the same shader program and VAO
-
-    // Overall configure
-    type = 5;
-    glUniform1i(typeLoc,type);
-    
-    // Draw the base
-    color = glm::vec3(0.0f,1.0f,1.0f);
-    glUniform3fv(colorLoc,1,glm::value_ptr(color));
-
-    model = glm::mat4();
-    model = glm::translate(model,robot.basePos);
-    model = glm::scale(model,robot.baseScale);
-    glUniformMatrix4fv(modelLoc,1,GL_FALSE,glm::value_ptr(model));
-    glDrawArrays(GL_TRIANGLES,0,36);
-
-    // Draw the low arm
-	color = glm::vec3(1.0f,0.0f,1.0f);
-    glUniform3fv(colorLoc,1,glm::value_ptr(color));
-
-
-    model = glm::mat4();
-    //glm::vec3 lowArmTrans = robot.lowArmPos + glm::vec3(0,robot.lowArmScale.y /2 ,0);
-    model = glm::translate(model,robot.lowArmMid);
-    model = glm::rotate(model,glm::radians(-robot.lowArmAngle),glm::vec3(0,0,1));
-    model = glm::scale(model,robot.lowArmScale);
-    glUniformMatrix4fv(modelLoc,1,GL_FALSE,glm::value_ptr(model));
-    glDrawArrays(GL_TRIANGLES,0,36);
-
-    // Draw the high arm
-    color = glm::vec3(1.0f,1.0f,0.0f);
-    glUniform3fv(colorLoc,1,glm::value_ptr(color));
-
-    model = glm::mat4();
-    //glm::vec3 highArmTans = robot.highArmPos + glm::vec3(0,robot.highArmScale.y /2, 0);
-    model = glm::translate(model,robot.highArmMid);
-    model = glm::rotate(model,glm::radians(-robot.highArmAngle),glm::vec3(0,0,1));
-    model = glm::scale(model,robot.highArmScale);
-    glUniformMatrix4fv(modelLoc,1,GL_FALSE,glm::value_ptr(model));
-    glDrawArrays(GL_TRIANGLES,0,36);
-
 
     glBindVertexArray(0);
 
@@ -759,7 +793,7 @@ int main(int argc, char **argv ){
     // Create window
     glutInit( &argc, argv );
     glutInitDisplayMode( GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH );
-    glutInitWindowSize( screenWidth = 600, screenHeight = 1000 );
+    glutInitWindowSize( screenWidth = 1300, screenHeight = 1000 );
     glutCreateWindow( "FruitTetris" );
 
     // Initialize GLEW to setup the OpenGL Function pointers
