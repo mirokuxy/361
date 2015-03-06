@@ -12,7 +12,6 @@ uniform vec3 myColor;
 
 in vec2 TexCoord;
 
-
 out vec4 color;
 
 void main()

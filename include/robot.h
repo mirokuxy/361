@@ -78,7 +78,7 @@ public:
 		float angle = deltaTime * 30.0f;
 
 		lowArmAngle += angle;
-		if(lowArmAngle < -60.0f) lowArmAngle = 0.0f;
+		if(lowArmAngle < -60.0f) lowArmAngle = -60.0f;
 		if(lowArmAngle > 90.0f) lowArmAngle = 90.0f;
 		return UpdatePos();
 	}
@@ -87,7 +87,7 @@ public:
 		float angle = deltaTime * 30.0f;
 
 		lowArmAngle -= angle;
-		if(lowArmAngle < -60.0f) lowArmAngle = 0.0f;
+		if(lowArmAngle < -60.0f) lowArmAngle = -60.0f;
 		if(lowArmAngle > 90.0f) lowArmAngle = 90.0f;
 		return UpdatePos();
 	}

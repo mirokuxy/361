@@ -39,8 +39,8 @@ using namespace std;
 
 // ---- 3D basics ------
 
-Shader tileShader,gridShader;
-GLuint tileVAO,gridVAO;
+Shader tileShader,gridShader,robotShader,lightShader;
+GLuint tileVAO,gridVAO,robotVAO,lightVAO;
 GLuint texture[5];
 
 int screenWidth;
@@ -109,6 +109,11 @@ bool gameRestart = false;
 Robot robot;
 bool tileOnTip;
 
+// lighting
+glm::vec3 lightColor(1.0f,1.0f,1.0f);
+glm::vec3 lightPos;
+glm::vec3 lightScale(2.0f,2.0f,2.0f);
+
 //------------------------------------------------------
 
 Tile newTile(int x1,int x2){
@@ -159,52 +164,54 @@ void init(){
     // ---------------------------------
     tileShader = Shader( "shader/vshader.glsl", "shader/fshader.glsl" );
     gridShader = Shader("shader/vshaderGrid.glsl","shader/fshaderGrid.glsl");
+    robotShader = Shader("shader/robotVshader.glsl","shader/robotFshader.glsl");
+    lightShader = Shader("shader/lightVshader.glsl","shader/lightFshader.glsl");
     
     //tileShader.Use();
 
     // Set up our vertex data
     GLfloat vertices[] = {
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,  0.0f,  0.0f, -1.0f,
+         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,  0.0f,  0.0f, -1.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,  0.0f,  0.0f, -1.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,  0.0f,  0.0f, -1.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,  0.0f,  0.0f, -1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,  0.0f,  0.0f, -1.0f,
+ 
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  0.0f,  0.0f,  1.0f,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,  0.0f,  0.0f,  1.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,  0.0f,  0.0f,  1.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,  0.0f,  0.0f,  1.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,  0.0f,  0.0f,  1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  0.0f,  0.0f,  1.0f,
+ 
+        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f, -1.0f,  0.0f,  0.0f,
+        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f, -1.0f,  0.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f, -1.0f,  0.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f, -1.0f,  0.0f,  0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f, -1.0f,  0.0f,  0.0f,
+        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f, -1.0f,  0.0f,  0.0f,
+ 
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,  1.0f,  0.0f,  0.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,  1.0f,  0.0f,  0.0f,
+         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,  1.0f,  0.0f,  0.0f,
+         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,  1.0f,  0.0f,  0.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  1.0f,  0.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,  1.0f,  0.0f,  0.0f,
+  
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,  0.0f, -1.0f,  0.0f,
+         0.5f, -0.5f, -0.5f,  1.0f, 1.0f,  0.0f, -1.0f,  0.0f,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,  0.0f, -1.0f,  0.0f,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,  0.0f, -1.0f,  0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  0.0f, -1.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,  0.0f, -1.0f,  0.0f,
+ 
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,  0.0f,  1.0f,  0.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,  0.0f,  1.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,  0.0f,  1.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,  0.0f,  1.0f,  0.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,  0.0f,  1.0f,  0.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,  0.0f,  1.0f,  0.0f
     };
 
     // Set up the grid data for the game window
@@ -237,7 +244,7 @@ void init(){
         2,6,
         3,7
     };
-    
+
 
     // Set up vertex arrays and buffers for the tile.
     // ---------------------------------
@@ -251,16 +258,44 @@ void init(){
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
     GLuint position = glGetAttribLocation(tileShader.Program, "position" ); 
-    glVertexAttribPointer(position, 3, GL_FLOAT, GL_FALSE, 5*sizeof(GLfloat), (GLvoid*)0);
+    glVertexAttribPointer(position, 3, GL_FLOAT, GL_FALSE, 8*sizeof(GLfloat), (GLvoid*)0);
     glEnableVertexAttribArray(position);
 
     GLuint texCoord = glGetAttribLocation(tileShader.Program, "texCoord" ); 
-    glVertexAttribPointer(texCoord, 2, GL_FLOAT, GL_FALSE, 5*sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+    glVertexAttribPointer(texCoord, 2, GL_FLOAT, GL_FALSE, 8*sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
     glEnableVertexAttribArray(texCoord); 
 
     // Unbind tileVAO (it's always a good thing to unbind any buffer/array to prevent strange bugs)
     glBindVertexArray(0); 
 
+
+    // Set up robot VAO
+    glGenVertexArrays(1,&robotVAO);
+    glBindVertexArray(robotVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER,VBO);
+
+    position = glGetAttribLocation(robotShader.Program,"position");
+    glVertexAttribPointer(position, 3, GL_FLOAT, GL_FALSE, 8*sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(position);
+
+    GLuint normal = glGetAttribLocation(robotShader.Program,"normal");
+    glVertexAttribPointer(normal, 3, GL_FLOAT, GL_FALSE, 8*sizeof(GLfloat), (GLvoid*) (5 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(normal);
+
+    glBindVertexArray(0);
+
+    // Set up light VAO
+    glGenVertexArrays(1,&lightVAO);
+    glBindVertexArray(lightVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER,VBO);
+
+    position = glGetAttribLocation(robotShader.Program,"position");
+    glVertexAttribPointer(position, 3, GL_FLOAT, GL_FALSE, 8*sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(position);
+
+    glBindVertexArray(0);
 
     // Set up grid VAO
     // ---------------------------------
@@ -643,47 +678,6 @@ void display(void){ // Render
     //bool inWindow = 0;
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    // Draw the Robot Arm with the same shader program and VAO
-    // -----------------------------------------------------
-
-    // Overall configure
-    type = 5;
-    glUniform1i(typeLoc,type);
-    
-    // Draw the base
-    color = glm::vec3(0.0f,1.0f,1.0f);
-    glUniform3fv(colorLoc,1,glm::value_ptr(color));
-
-    model = glm::mat4();
-    model = glm::translate(model,robot.basePos);
-    model = glm::scale(model,robot.baseScale);
-    glUniformMatrix4fv(modelLoc,1,GL_FALSE,glm::value_ptr(model));
-    glDrawArrays(GL_TRIANGLES,0,36);
-
-    // Draw the low arm
-	color = glm::vec3(1.0f,0.0f,1.0f);
-    glUniform3fv(colorLoc,1,glm::value_ptr(color));
-
-    model = glm::mat4();
-    model = glm::translate(model,robot.lowArmMid);
-    model = glm::rotate(model,glm::radians(-robot.lowArmAngle),glm::vec3(0,0,1));
-    model = glm::scale(model,robot.lowArmScale);
-    glUniformMatrix4fv(modelLoc,1,GL_FALSE,glm::value_ptr(model));
-    glDrawArrays(GL_TRIANGLES,0,36);
-
-    // Draw the high arm
-    color = glm::vec3(1.0f,1.0f,0.0f);
-    glUniform3fv(colorLoc,1,glm::value_ptr(color));
-
-    model = glm::mat4();
-    model = glm::translate(model,robot.highArmMid);
-    model = glm::rotate(model,glm::radians(-robot.highArmAngle),glm::vec3(0,0,1));
-    model = glm::scale(model,robot.highArmScale);
-    glUniformMatrix4fv(modelLoc,1,GL_FALSE,glm::value_ptr(model));
-    glDrawArrays(GL_TRIANGLES,0,36);
-
-    // -----------------------------------------------------
-
     // Draw the game window tiles with the same shader program and VAO
     for(int i=0;i<myWindow.width;i++)
         for(int j=0;j<myWindow.height;j++) if(myWindow.bitmap[i][j]){
@@ -779,6 +773,103 @@ void display(void){ // Render
         }
 
     glBindVertexArray(0);
+
+
+    // Draw the robot arm
+    // -----------------------------------------------------
+
+    robotShader.Use();
+
+    // vertex shader matrices
+    modelLoc = glGetUniformLocation(robotShader.Program,"model");
+
+    viewLoc = glGetUniformLocation(robotShader.Program,"view");
+    glUniformMatrix4fv(viewLoc,1,GL_FALSE,glm::value_ptr(view));
+    
+    projectionLoc = glGetUniformLocation(robotShader.Program,"projection");
+    glUniformMatrix4fv(projectionLoc,1,GL_FALSE,glm::value_ptr(projection));
+    
+    // fragment shader matrices
+    GLint objectColorLoc = glGetUniformLocation(robotShader.Program, "objectColor");
+
+    GLint lightColorLoc = glGetUniformLocation(robotShader.Program, "lightColor");
+    glUniform3fv(lightColorLoc,1, glm::value_ptr(lightColor));
+
+    GLint lightPosLoc = glGetUniformLocation(robotShader.Program,"lightPos");  
+    model = glm::mat4();
+    model = glm::translate(model, glm::vec3(5.0f,10.0f,5.0f));
+    model = glm::rotate(model, glm::radians((float) glutGet(GLUT_ELAPSED_TIME) /1000 * 25.0f), glm::vec3(0.0f,0.0f,1.0f));
+    model = glm::translate(model, glm::vec3(14.0f,0.0f,0.0f));
+    lightPos = glm::vec3(model * glm::vec4(0.0f,0.0f,0.0f,1.0f));
+    glUniform3fv(lightPosLoc,1, glm::value_ptr(lightPos));
+
+    GLuint viewPosLoc = glGetUniformLocation(robotShader.Program,"viewPos");
+    glm::vec3 viewPos = myCamera.Position;
+    glUniform3fv(viewPosLoc,1,glm::value_ptr(viewPos));
+
+    // bind VAO
+    glBindVertexArray(robotVAO);
+
+    // Draw the base
+    glm::vec3 objectColor = glm::vec3(0.0f,1.0f,1.0f);
+    glUniform3fv(objectColorLoc,1, glm::value_ptr(objectColor));
+
+    model = glm::mat4();
+    model = glm::translate(model,robot.basePos);
+    model = glm::scale(model,robot.baseScale);
+    glUniformMatrix4fv(modelLoc,1,GL_FALSE,glm::value_ptr(model));
+    glDrawArrays(GL_TRIANGLES,0,36);
+
+    // Draw the low arm
+    objectColor = glm::vec3(1.0f,0.0f,1.0f);
+    glUniform3fv(objectColorLoc,1,glm::value_ptr(objectColor));
+
+    model = glm::mat4();
+    model = glm::translate(model,robot.lowArmMid);
+    model = glm::rotate(model,glm::radians(-robot.lowArmAngle),glm::vec3(0,0,1));
+    model = glm::scale(model,robot.lowArmScale);
+    glUniformMatrix4fv(modelLoc,1,GL_FALSE,glm::value_ptr(model));
+    glDrawArrays(GL_TRIANGLES,0,36);
+
+    // Draw the high arm
+    objectColor = glm::vec3(1.0f,1.0f,0.0f);
+    glUniform3fv(objectColorLoc,1,glm::value_ptr(objectColor));
+
+    model = glm::mat4();
+    model = glm::translate(model,robot.highArmMid);
+    model = glm::rotate(model,glm::radians(-robot.highArmAngle),glm::vec3(0,0,1));
+    model = glm::scale(model,robot.highArmScale);
+    glUniformMatrix4fv(modelLoc,1,GL_FALSE,glm::value_ptr(model));
+    glDrawArrays(GL_TRIANGLES,0,36);
+
+    glBindVertexArray(0);
+
+    // ----------------------------------------------
+
+    // draw light
+    // -----------------------------------
+
+    lightShader.Use();
+
+    modelLoc = glGetUniformLocation(lightShader.Program,"model");
+
+    viewLoc = glGetUniformLocation(lightShader.Program,"view");
+    glUniformMatrix4fv(viewLoc,1,GL_FALSE,glm::value_ptr(view));
+
+    projectionLoc = glGetUniformLocation(lightShader.Program,"projection");
+    glUniformMatrix4fv(projectionLoc,1,GL_FALSE,glm::value_ptr(projection));
+
+    glBindVertexArray(lightVAO);
+ 
+    model = glm::mat4();
+    model = glm::translate(model,lightPos);
+    model = glm::scale(model,lightScale);
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glDrawArrays(GL_TRIANGLES, 0, 36);           
+
+    glBindVertexArray(0);
+
+    // ------------------------------------------
 
     // Update screen
     glutPostRedisplay();
