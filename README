@@ -77,16 +77,18 @@ new about robot arm:
 
 12) tile cannot be dropped from robot arm when it's out side of the game window or colliding with other tiles
 
+13) when countdown time goes to 0, if the current tile is inside the game window and not colliding with other tiles then it will fall at the current position, otherwise it will fall from the top-center of the game window.
 
 
 ---------------------------------------------
 
 
---- File Directory Explanation ---
+-------- File Directory Explanation ---------
 
 include/ :
 	GLM lib headers ( for mathmatical calculation )
-	SOIL lib headers ( for loading textures )
+	SOIL lib headers and libs ( for loading textures )
+	FreeType lib headers and libs ( for font loading and text rendering )
 	My own headers ( shader class; camera class; cube class; tile class; window class; robot class)
 
 shader/ :
@@ -96,13 +98,16 @@ shader/ :
 texture/ :
 	texture files
 
+fonts/ :
+	fonts
+
 Tetris.cpp : 
 	Main program
 
 Makefile :
 	makefile file
 
-----------------------------------
+---------------------------------------------
 
 
 --- Steps not completed ---
@@ -110,21 +115,39 @@ Makefile :
 ---------------------------
 
 
-------------- Additional Features -------------
+------------ Additional Features ------------
 
-1) camera control :
+1) lighting effect
+	1: robot arm has following 3 lightings:
+			ambient light
+			diffuse light
+			specular light
+	2: a moving light source
+
+2) text rendering
+	1: promt text indicating the 'q' and 'r' operation
+	2: countdown time text
+	3: game over text
+
+3) blending effect
+	1: robot arms (not including the base) are drawn with a 0.8 transparency rate, so that the arms will not hide the tiles completely.
+	2: text with blending
+
+4) camera control :
 	camera can move up and down
 
-2) Texture :
+5) Texture :
 	Each kind of fruit is represented by a corresponding picture with corresponding color.
 
-3) Game Info and Control :
+6) Game Control :
 	'z' to suspend and continue game;
-	prompt in terminal window when game ends;
 
-4) Multiple Shaders :
-	vshader.glsl , fshader.glsl : to draw tiles and robot arm
-	vshaderGrid.glsl , fshaderGrid.glsl : to draw backgournd
+7) Multiple Shaders :
 
------------------------------------------------
+	tiles 			: vshader.glsl , 		fshader.glsl
+	background grid : vshaderGrid.glsl , 	fshaderGrid.glsl
+	light source 	: lightVshader.glsl , 	lightFshader.glsl
+	robot arm 		: robotVshader.glsl , 	robotFshader.glsl
+	text 			: textVshader.glsl , 	textFshader.glsl
 
+---------------------------------------------

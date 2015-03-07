@@ -9,6 +9,7 @@ uniform vec3 lightPos;
 uniform vec3 lightColor;
 uniform vec3 objectColor;
 uniform vec3 viewPos;
+uniform int blend;
 
 void main()
 {
@@ -32,5 +33,8 @@ void main()
 
     vec3 result = (ambient + diffuse + specular) * objectColor;
     //vec3 result = (ambient ) * objectColor;
-    color = vec4(result, 1.0f);
+    if(blend == 1)
+        color = vec4(result, 0.8f);
+    else
+        color = vec4(result, 1.0f);
 } 

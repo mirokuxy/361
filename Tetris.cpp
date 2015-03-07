@@ -993,12 +993,18 @@ void display(void){ // Render
     glm::vec3 viewPos = myCamera.Position;
     glUniform3fv(viewPosLoc,1,glm::value_ptr(viewPos));
 
+    GLuint blendLoc = glGetUniformLocation(robotShader.Program,"blend");
+    int blend;
+
     // bind VAO
     glBindVertexArray(robotVAO);
 
     // Draw the base
     glm::vec3 objectColor = glm::vec3(0.0f,1.0f,1.0f);
     glUniform3fv(objectColorLoc,1, glm::value_ptr(objectColor));
+
+    blend = 0;
+    glUniform1i(blendLoc,blend);
 
     model = glm::mat4();
     model = glm::translate(model,robot.basePos);
@@ -1009,6 +1015,9 @@ void display(void){ // Render
     // Draw the low arm
     objectColor = glm::vec3(1.0f,0.0f,1.0f);
     glUniform3fv(objectColorLoc,1,glm::value_ptr(objectColor));
+
+    blend = 1;
+    glUniform1i(blendLoc,blend);
 
     model = glm::mat4();
     model = glm::translate(model,robot.lowArmMid);
