@@ -86,7 +86,7 @@ public:
 		for(int i=0;i<t.num;i++){
 			glm::ivec3 pos = t.GetPos(i);
 			//if(pos.x >= 0 && pos.x <width && pos.y >= 0 && pos.y < height){
-			if(pos.x >= 0 && pos.x <width && pos.y >= 0){
+			if(pos.x >= 0 && pos.x <width && pos.y >= 0 && pos.y < MAXWINDOWHEIGHT){
 				bitmap[pos.x][pos.y] = true;
 				type[pos.x][pos.y] = t[i].type;
 			}

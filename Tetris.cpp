@@ -5,6 +5,7 @@
 
 // C++ 
 #include <iostream>
+#include <map>
 using namespace std;
 
 // GLEW
@@ -23,6 +24,10 @@ using namespace std;
 // SOIL lib for loading pictures
 #include <SOIL/SOIL.h>
 
+// FreeType lib for loading fonts
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
 // Personal classes
 #include <shader.h> // My shader class
 #include <camera.h> // My camera class
@@ -30,6 +35,8 @@ using namespace std;
 #include <tile.h>   // My Tetris Tile class
 #include <window.h> // My game Window class
 #include <robot.h>  // My Robot Arm class
+
+
 
 // ---------- Define global variables ------------
 // -----------------------------------------------
@@ -39,8 +46,9 @@ using namespace std;
 
 // ---- 3D basics ------
 
-Shader tileShader,gridShader,robotShader,lightShader;
-GLuint tileVAO,gridVAO,robotVAO,lightVAO;
+Shader tileShader,gridShader,robotShader,lightShader, textShader;
+GLuint tileVAO,gridVAO,robotVAO,lightVAO,textVAO;
+GLuint textVBO;
 GLuint texture[5];
 
 int screenWidth;
@@ -114,6 +122,25 @@ glm::vec3 lightColor(1.0f,1.0f,1.0f);
 glm::vec3 lightPos;
 glm::vec3 lightScale(2.0f,2.0f,2.0f);
 
+// text
+
+struct Character{
+    GLuint TextureID;
+    glm::ivec2 Size;
+    glm::ivec2 Bearing;
+    GLuint Advance;
+};
+
+std::map<GLchar, Character> Characters;
+
+// extra game logic
+char countdownText[20];
+int secondsLeft;
+const int TOTSECONDS = 5;
+float pastTime;
+
+char gameOverText[30];
+
 //------------------------------------------------------
 
 Tile newTile(int x1,int x2){
@@ -159,14 +186,114 @@ void SetUpTexture(GLuint &texture, const char path[]){
     glBindTexture(GL_TEXTURE_2D,0);
 }
 
+void initFont(){
+    FT_Library ft;
+    if(FT_Init_FreeType(&ft))
+        std::cout << "ERROR::FREETYPE: Could not init FreeType Library" << std::endl;
+
+    FT_Face face;
+    if(FT_New_Face(ft,"fonts/arial.ttf",0,&face))
+        std::cout << "ERROR::FREETYPE: Failed to load font" << std::endl;
+
+    FT_Set_Pixel_Sizes(face,0,48);
+
+    glPixelStorei(GL_UNPACK_ALIGNMENT,1);   // Disable byte-alignment restriction
+
+    for(GLubyte c = 0; c < 128; c++){
+        // Load character glyph
+        if(FT_Load_Char(face,c,FT_LOAD_RENDER)){
+            std::cout << "ERROR::FREETYPE: Failed to load Glyph" << std::endl;
+            continue;
+        }
+        // Generate texture
+        GLuint texture;
+        glGenTextures(1, &texture);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            GL_RED,
+            face->glyph->bitmap.width,
+            face->glyph->bitmap.rows,
+            0,
+            GL_RED,
+            GL_UNSIGNED_BYTE,
+            face->glyph->bitmap.buffer
+        );
+        // Set texture options
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        // Now store character for later use
+        Character character = {
+            texture,
+            glm::ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows),
+            glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top),
+            face->glyph->advance.x
+        };
+        Characters.insert(std::pair<GLchar, Character>(c,character));
+    }
+
+    glBindTexture(GL_TEXTURE_2D,0);
+
+    FT_Done_Face(face);
+    FT_Done_FreeType(ft);
+}
+
+void renderText(Shader &s, std::string text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color){
+    // Activate corresponding render state
+    s.Use();
+    glUniform3fv(glGetUniformLocation(s.Program,"textColor"), 1, glm::value_ptr(color));
+    glActiveTexture(GL_TEXTURE0);
+    glBindVertexArray(textVAO);
+
+    // Iterate through all characters in string
+    std::string::const_iterator c;
+    for(c = text.begin(); c != text.end(); c++){
+        Character ch = Characters[*c];
+
+        GLfloat xpos = x + ch.Bearing.x * scale;
+        GLfloat ypos = y - (ch.Size.y - ch.Bearing.y) * scale;
+
+        GLfloat w = ch.Size.x * scale;
+        GLfloat h = ch.Size.y * scale;
+        // Update text VBO
+        GLfloat vertices[6][4] = {
+            { xpos, ypos + h,   0.0, 0.0 },
+            { xpos, ypos,       0.0, 1.0 },
+            { xpos + w, ypos,   1.0, 1.0 },
+
+            { xpos, ypos + h,   0.0, 0.0 },
+            { xpos + w, ypos,   1.0, 1.0 },
+            { xpos + w, ypos+h, 1.0, 0.0 }
+        };
+        // Render glyph texture over quad
+        glBindTexture(GL_TEXTURE_2D,ch.TextureID);
+        glBindBuffer(GL_ARRAY_BUFFER,textVBO);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+        glBindBuffer(GL_ARRAY_BUFFER,0);
+        // Render quad
+        glDrawArrays(GL_TRIANGLES,0,6);
+        // Now advance cursors for next glyph (note that advance is number of 1/64 pixels)
+        x += ( (ch.Advance >> 6) * scale); // Bitshift by 6 to get value in pixels (2^6 = 64)
+    }
+
+    glBindVertexArray(0);
+    glBindTexture(GL_TEXTURE_2D,0);
+}
+
 void init(){
+    // initialize Font textures
+    initFont();
+
     // Create shader program
     // ---------------------------------
     tileShader = Shader( "shader/vshader.glsl", "shader/fshader.glsl" );
     gridShader = Shader("shader/vshaderGrid.glsl","shader/fshaderGrid.glsl");
     robotShader = Shader("shader/robotVshader.glsl","shader/robotFshader.glsl");
     lightShader = Shader("shader/lightVshader.glsl","shader/lightFshader.glsl");
-    
+    textShader = Shader("shader/textVshader.glsl","shader/textFshader.glsl");
     //tileShader.Use();
 
     // Set up our vertex data
@@ -328,6 +455,45 @@ void init(){
     //SetUpTexture(texture[2], "./texture/grape.png");
     //SetUpTexture(texture[3], "./texture/apple.png");
     //SetUpTexture(texture[4], "./texture/grape.png");
+
+
+    // Set up the text VAO
+    // ------------------------------------
+
+    // use text shader
+    textShader.Use();
+
+    // Set up the text VAO;
+    glGenVertexArrays(1, & textVAO);
+    glBindVertexArray(textVAO);
+
+    glGenBuffers(1, &textVBO);
+    glBindBuffer(GL_ARRAY_BUFFER,textVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 4, NULL, GL_DYNAMIC_DRAW);
+
+    GLuint vertex = glGetAttribLocation(textShader.Program, "vertex");
+    glVertexAttribPointer(vertex, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), 0);
+    glEnableVertexAttribArray(vertex);
+
+    glBindBuffer(GL_ARRAY_BUFFER,0);
+    glBindVertexArray(0);
+    // ----------------------------------------------
+}
+
+void loadTile(){
+    myTile = newTile(2,myWindow.width - 1 - 2);
+    myTile.SetPos(robot.tipPosDiscrete);
+    tileOnTip = true;
+    hasTile = false;
+
+    secondsLeft = TOTSECONDS;
+    sprintf(countdownText,"%d seconds left",secondsLeft);
+    pastTime = 0;
+}
+
+void dropTile(){
+    tileOnTip = false;
+    hasTile = true;
 }
 
 void gameInit(){
@@ -336,10 +502,12 @@ void gameInit(){
     hasFreeTile = false;
 
     robot = Robot(-5,12,12);
-    myTile = newTile(2,myWindow.width - 1 - 2);
-    myTile.SetPos(robot.tipPosDiscrete);
-    tileOnTip = true;
-    hasTile = false;
+    loadTile();
+
+    interval = 0.0f;
+    gameSuspend = gameEnd = gameRestart = false;
+
+    strcpy(gameOverText,"");
 }
 
 void restartGame(){
@@ -352,11 +520,12 @@ void restartGame(){
     freeTiles = NULL;
     hasFreeTile = false;
 
-    myTile = newTile(2,myWindow.width - 1 - 2);
-    hasTile = true;
+    loadTile();
 
     interval = 0.0f;
     gameSuspend = gameEnd = gameRestart = false;
+
+    strcpy(gameOverText,"");
 }
 
 void keyboard( unsigned char key, int x, int y ){
@@ -373,8 +542,7 @@ void keyboard( unsigned char key, int x, int y ){
         case ' ':
             //if(hasTile) myTile.Shuffle();
         	if(tileOnTip && myWindow.CheckTile(myTile)){
-        		tileOnTip = false;
-        		hasTile = true;
+        		dropTile();
         	}
         	else if(hasTile){
         		//printf("Space detected\n");
@@ -505,6 +673,25 @@ void display(void){ // Render
 
     Do_Movement(deltaTime);
 
+    // Update seconds left
+    if(tileOnTip){
+        pastTime += deltaTime;
+        if(pastTime >= 1.0){
+            pastTime = 0.0;
+            secondsLeft--;
+            sprintf(countdownText,"%d seconds left",secondsLeft);
+            if(secondsLeft == 0){
+                if(myWindow.CheckTile(myTile)) 
+                    dropTile();
+                else{
+                    myTile.SetPos(glm::vec3(5,20,0));
+                    dropTile();
+                }
+            }
+        }
+    }
+
+
     if(gameRestart) restartGame();
 
     // Update tile position
@@ -529,6 +716,7 @@ void display(void){ // Render
                 if(! myWindow.CheckEnd()){
                     gameEnd = true;
                     printf("Game Ends: Over Stack!\n");
+                    sprintf(gameOverText,"Game Over!");
                 }
 
                 #ifdef DEBUG
@@ -548,9 +736,7 @@ void display(void){ // Render
             }
         }
         else if(! hasFreeTile){	// no tile, and no free tile, then bear a new player tile
-            myTile = newTile(2,myWindow.width -1 - 2);
-            myTile.SetPos(robot.tipPosDiscrete);
-            tileOnTip = true;
+            loadTile();
 
             #ifdef DEBUG
             printf("New Tile : ");
@@ -871,6 +1057,22 @@ void display(void){ // Render
 
     // ------------------------------------------
 
+    // Draw the text
+    // ------------------------------------
+
+    textShader.Use();
+
+    projection = glm::ortho(0.0f,(float) screenWidth,0.0f,(float) screenHeight);
+    projectionLoc = glGetUniformLocation(textShader.Program, "projection");
+    glUniformMatrix4fv(projectionLoc,1,GL_FALSE,glm::value_ptr(projection));
+
+    renderText(textShader, "press 'q' to quit", (float) screenWidth - 220.0f, (float) screenHeight -45.0f ,0.5f, glm::vec3(0.5f,0.8f,0.2f));
+    renderText(textShader, "press 'r' to restart", (float) screenWidth - 220.0f, (float) screenHeight -75.0f ,0.5f, glm::vec3(0.5f,0.8f,0.2f));
+    renderText(textShader, countdownText, 25.0f, (float) screenHeight - 45.0f,0.5f, glm::vec3(0.5f,0.8f,0.2f));
+    //sprintf(gameOverText,"Game Over!");
+    renderText(textShader, gameOverText, (float) screenWidth /2 - 150.0f , (float) screenHeight /2 + 50.0f, 1.0f, glm::vec3(0.3f,0.7f,0.9f));
+
+
     // Update screen
     glutPostRedisplay();
     glutSwapBuffers();
@@ -894,6 +1096,8 @@ int main(int argc, char **argv ){
     // Set OpenGL environment
     glEnable(GL_DEPTH_TEST);
     glutSetCursor(GLUT_CURSOR_NONE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
     // Initialize and calculate graphics data
     init();

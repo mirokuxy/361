@@ -35,21 +35,22 @@ EXECUTABLE= FruitTetris3D
 # to your program here 
 
 # Linux (default)
-LDFLAGS = -lGL -lglut -lGLEW -lXext -lX11 -lm -lSOIL
+LDFLAGS = -lGL -lglut -lGLEW -lXext -lX11 -lm -lSOIL -lfreetype
 
 # If you have other library files in a different directory add them here 
-INCLUDEFLAG= -I. -I$(INCLUDEDIR) -I./include/
-LIBFLAG= -L$(LIBDIR) -L./include/SOIL/
+INCLUDEFLAG= -I. -I$(INCLUDEDIR) -I./include/ -I./include/freetype/include/
+LIBFLAG= -L$(LIBDIR) -L./include/SOIL/ -L./include/freetype/lib
 
 # Don't touch this one if you don't know what you're doing 
 OBJECT= $(SOURCE:.cpp=.o)
 
 # Don't touch any of these either if you don't know what you're doing 
-all: $(OBJECT) depend
+#all: $(OBJECT) depend
+all: $(OBJECT)
 	$(CC) $(CFLAGS) $(INCLUDEFLAG) $(LIBFLAG) $(OBJECT) -o $(EXECUTABLE) $(LDFLAGS)
 
-depend:
-	$(CC) $(INCLUDEFLAG) -M $(SOURCE) > depend
+#depend:
+#	$(CC) $(INCLUDEFLAG) -M $(SOURCE) > depend
 
 $(OBJECT):
 	$(CC) $(CFLAGS) $(INCLUDEFLAG) -c -o $@ $(@:.o=.cpp)
@@ -58,6 +59,7 @@ clean_object:
 	rm -f $(OBJECT)
 
 clean:
-	rm -f $(OBJECT) depend $(EXECUTABLE)
+#	rm -f $(OBJECT) depend $(EXECUTABLE)
+	rm -f $(OBJECT) $(EXECUTABLE)
 
-include depend
+#include depend
