@@ -1,55 +1,49 @@
-// This is a readme file for FruitTetris3D game for assignment 2 of CMTP361 at SFU
-// Author: Yu Xiao 
-// Student ID: 301267080
+# FruitTetris3D
+This is a readme file for FruitTetris3D game for assignment 2 of CMTP361 at SFU
+Author: Yu Xiao 
+Student ID: 301267080
 
 
------ Make command -----
-	make
-------------------------
+## Make the game:
+```make```
 
+## Execute the game:
+```./FruitTetris3D```
 
--- Execution command ---
-	./FruitTetris3D
-------------------------
-
-
-------------- Game Instruction -------------
+## Game Instructions
 
 1) to manipulate camera
 
-ctrl + 'up' : move up
-ctrl + 'down' : move down
-ctrl + 'left' : move left
-ctrl + 'right' : move right
-mouse roll forward : magnify objects / decrease FOV
-mouse roll backward : minify objects / increase FOV
+* ctrl + 'up' : move up
+* ctrl + 'down' : move down
+* ctrl + 'left' : move left
+* ctrl + 'right' : move right
+* mouse roll forward : magnify objects / decrease FOV
+* mouse roll backward : minify objects / increase FOV
 
 PS : The camera always looks at the center of the game window
 
 2) to manipulate the robot arm
 
-'w' : move up
-'s' : move down
-'a' : move left
-'d' : move right
-'space' : drop fruit
+* 'w' : move up
+* 's' : move down
+* 'a' : move left
+* 'd' : move right
+* 'space' : drop fruit
 
 3) to manipulate tiles
 
-'up' (direction key) : rotate the tile
-'down' (direction key) : accelerate falling
-'space' : shuffle the fruits within the tile
+* 'up' (direction key) : rotate the tile
+* 'down' (direction key) : accelerate falling
+* 'space' : shuffle the fruits within the tile
 
 4) general game control
 
-'z' : suspend game / continue game
-'r' : restart game
-'q' : quit game 
+* 'z' : suspend game / continue game
+* 'r' : restart game
+* 'q' : quit game 
 
----------------------------------------------
-
-
------------ Game Logic Explanation ----------
+## Game Logic Explanation
 
 1) Any full row will be removed
 
@@ -79,11 +73,7 @@ new about robot arm:
 
 13) when countdown time goes to 0, if the current tile is inside the game window and not colliding with other tiles then it will fall at the current position, otherwise it will fall from the top-center of the game window.
 
-
----------------------------------------------
-
-
--------- File Directory Explanation ---------
+## File Directory Explanation
 
 include/ :
 	GLM lib headers ( for mathmatical calculation )
@@ -107,15 +97,10 @@ Tetris.cpp :
 Makefile :
 	makefile file
 
----------------------------------------------
+## Steps not completed
+NONE
 
-
---- Steps not completed ---
-	NONE
----------------------------
-
-
------------- Additional Features ------------
+## Additional Features
 
 1) lighting effect
 	1: robot arm has following 3 lightings:
@@ -150,4 +135,3 @@ Makefile :
 	robot arm 		: robotVshader.glsl , 	robotFshader.glsl
 	text 			: textVshader.glsl , 	textFshader.glsl
 
----------------------------------------------
