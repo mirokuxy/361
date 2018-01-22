@@ -1,7 +1,5 @@
 # FruitTetris3D
 This is a readme file for FruitTetris3D game for assignment 2 of CMTP361 at SFU
-Author: Yu Xiao 
-Student ID: 301267080
 
 
 ## Make the game:
